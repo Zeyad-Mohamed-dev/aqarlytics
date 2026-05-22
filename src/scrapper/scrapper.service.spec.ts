@@ -1,34 +1,33 @@
 import { ScrapperService } from './scrapper.service';
+import { FacebookScraper } from './facebook.scraper';
 
 describe('ScrapperService', () => {
   let service: ScrapperService;
+  let facebookScraper: FacebookScraper;
 
   beforeAll(async () => {
-    service = new ScrapperService();
+    facebookScraper = new FacebookScraper();
+    await facebookScraper.onModuleInit();
+    service = new ScrapperService(facebookScraper);
     await service.onModuleInit();
   });
 
   afterAll(async () => {
-    await (service as any).browser.close();
+    await facebookScraper.onModuleDestroy();
   });
 
-  // ✅ Test 1: print facebook login page content
+  // Test 1: print facebook login page content
   it('should print page content', async () => {
-    const page = await (service as any).browser.newPage();
-
+    const page = await (facebookScraper as any).browser.newPage();
     await page.setUserAgent(
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     );
-
     await page.goto('https://www.facebook.com/login', {
-      waitUntil: 'networkidle2',
+      waitUntil: 'domcontentloaded',
     });
-
-    const html = await page.content();
 
     console.log('=== URL ===', page.url());
 
-    // Print all input fields found on the page
     const inputs = await page.evaluate(() =>
       Array.from(document.querySelectorAll('input')).map(i => ({
         id: i.id,
@@ -39,7 +38,6 @@ describe('ScrapperService', () => {
     );
     console.log('=== INPUTS FOUND ===', JSON.stringify(inputs, null, 2));
 
-    // Print all buttons found on the page
     const buttons = await page.evaluate(() =>
       Array.from(document.querySelectorAll('button')).map(b => ({
         text: b.innerText,
@@ -52,35 +50,50 @@ describe('ScrapperService', () => {
     await page.close();
   }, 30000);
 
-  // ✅ Test 2: basic scrape
+  // Test 2: service is defined
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
+  // Test 3: login sets session cookies
   it('should login to facebook', async () => {
-    const page = await (service as any).login(
-      'ziadmohomar123@gmail.com',  // ← replace
-      '1m2a3n456789',          // ← replace
+    // login() returns void and closes the page internally —
+    // we verify it worked by checking sessionCookies were populated
+    await (facebookScraper as any).login(
+      'ziadmohomar123@gmail.com',
+      '1m2a3n456789',
     );
+
+    const cookies = (facebookScraper as any).sessionCookies;
+    console.log('=== SESSION COOKIES SET ===', cookies?.length ?? 0, 'cookies');
+
+    expect(cookies).not.toBeNull();
+    expect(Array.isArray(cookies)).toBe(true);
+    expect(cookies.length).toBeGreaterThan(0);
+
+    // Verify it's actually logged in by opening a page with the cookies
+    const page = await (facebookScraper as any).browser.newPage();
+    await page.setCookie(...cookies);
+    await page.goto('https://www.facebook.com', { waitUntil: 'domcontentloaded' });
 
     const url = page.url();
     console.log('=== AFTER LOGIN URL ===', url);
 
-    // Print what's on the page after login
     const title = await page.title();
     console.log('=== PAGE TITLE ===', title);
 
+    await page.close();
+
     expect(url).not.toContain('login');
     expect(url).not.toContain('checkpoint');
+  }, 60000);
 
-  }, 30000);
-
-  // ✅ NEW: test scraping post comments
+  // Test 4: scrape post comments
   it('should scrape post comments', async () => {
-    const result = await service.scrapePostComments(
+    const result = await service.scrapeFacebook(
       'https://www.facebook.com/share/p/1Dy3rbx25y/',
-      'ziadmohomar123@gmail.com',  // ← replace
-      '1m2a3n456789',          // ← replace
+      'ziadmohomar123@gmail.com',
+      '1m2a3n456789',
     );
 
     console.log('=== POST CONTENT ===', result.postContent);
@@ -90,6 +103,5 @@ describe('ScrapperService', () => {
     expect(Array.isArray(result.comments)).toBe(true);
     expect(result.comments.length).toBeGreaterThan(0);
     expect(result.comments[0].authorUrl).toContain('facebook.com');
-
   }, 600000);
 });

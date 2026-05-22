@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { ResponseInterceptor } from './common/response.interceptor';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -23,6 +25,12 @@ import { ScrapperModule } from './scrapper/scrapper.module';
     ScrapperModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ResponseInterceptor,
+    },
+  ],
 })
 export class AppModule {}
