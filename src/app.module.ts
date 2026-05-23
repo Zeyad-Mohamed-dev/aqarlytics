@@ -10,6 +10,7 @@ import { LeadsModule } from './leads/leads.module';
 import { PostsModule } from './posts/posts.module';
 import { AgencyModule } from './agency/agency.module';
 import { ScrapperModule } from './scrapper/scrapper.module';
+import { AnalyzerModule } from './analyzer/analyzer.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { ScrapperModule } from './scrapper/scrapper.module';
     PostsModule,
     AgencyModule,
     ScrapperModule,
+    AnalyzerModule,
   ],
   controllers: [AppController],
   providers: [

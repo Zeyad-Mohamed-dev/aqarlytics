@@ -91,7 +91,7 @@ describe('ScrapperService', () => {
   // Test 4: scrape post comments
   it('should scrape post comments', async () => {
     const result = await service.scrapeFacebook(
-      'https://www.facebook.com/share/p/1Dy3rbx25y/',
+      'https://www.facebook.com/share/p/17mXEjJd3k/',
       'ziadmohomar123@gmail.com',
       '1m2a3n456789',
     );

@@ -3,20 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import puppeteer, { Browser, Page } from 'puppeteer';
 import { Scraper } from './scraper.interface';
-
-export interface FacebookComment {
-  author: string;
-  authorUrl: string;
-  content: string;
-  timestamp: string;
-  replies: FacebookReply[];
-}
-
-export interface FacebookReply {
-  author: string;
-  authorUrl: string;
-  content: string;
-}
+import { FacebookComment } from './types/FacebookComment';
 
 @Injectable()
 export class FacebookScraper
@@ -25,20 +12,20 @@ export class FacebookScraper
 {
   private browser: Browser;
   private sessionCookies: any[] | null = null;
-  private scrapedCommentKeys = new Set<string>();
   private readonly cookiePath = path.resolve(process.cwd(), '.fb_session_cookies.json');
 
-  // ── Random delay between min and max ms ──────────────────────────────────
+  private readonly seenCommentsByPost = new Map<string, Set<string>>();
+
   private async randomDelay(min: number, max: number): Promise<void> {
     const ms = Math.floor(Math.random() * (max - min + 1)) + min;
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   async onModuleInit() {
-    this.browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
+    // this.browser = await puppeteer.launch({
+    //   headless: false,
+    //   args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    // });
 
     if (fs.existsSync(this.cookiePath)) {
       try {
@@ -52,7 +39,9 @@ export class FacebookScraper
   }
 
   async onModuleDestroy() {
-    await this.browser?.close();
+    if (this.browser?.connected) {
+      await this.browser.close();
+    }
   }
 
   private async login(email: string, password: string): Promise<void> {
@@ -72,27 +61,26 @@ export class FacebookScraper
         timeout: 30000,
       });
 
-      await this.randomDelay(800, 1800);
+      await this.randomDelay(500, 1000);
 
       const emailInput = await page.$('input[name="email"]');
       if (!emailInput) throw new Error('Login page did not load — email input not found');
 
-      // Type email character by character with random per-keystroke delay
       for (const char of email) {
         await page.type('input[name="email"]', char, {
-          delay: Math.floor(Math.random() * 80) + 40,
+          delay: Math.floor(Math.random() * 60) + 30,
         });
       }
 
-      await this.randomDelay(400, 900);
+      await this.randomDelay(300, 600);
 
       for (const char of password) {
         await page.type('input[name="pass"]', char, {
-          delay: Math.floor(Math.random() * 80) + 40,
+          delay: Math.floor(Math.random() * 60) + 30,
         });
       }
 
-      await this.randomDelay(600, 1200);
+      await this.randomDelay(300, 600);
       await page.keyboard.press('Enter');
 
       await page.waitForFunction(
@@ -100,7 +88,7 @@ export class FacebookScraper
         { timeout: 30000 }
       );
 
-      await this.randomDelay(1000, 2000);
+      await this.randomDelay(800, 1500);
 
       const currentUrl = page.url();
       if (currentUrl.includes('checkpoint')) {
@@ -132,7 +120,19 @@ export class FacebookScraper
     password: string,
     limit = 10,
   ): Promise<{ postContent: string; comments: FacebookComment[] }> {
+    if (!this.browser?.connected) {
+      this.browser = await puppeteer.launch({
+        headless: false,
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      });
+    }
+
     await this.login(email, password);
+
+    if (!this.seenCommentsByPost.has(postUrl)) {
+      this.seenCommentsByPost.set(postUrl, new Set<string>());
+    }
+    const seenKeys = this.seenCommentsByPost.get(postUrl)!;
 
     const page = await this.browser.newPage();
     await page.setUserAgent(
@@ -141,43 +141,60 @@ export class FacebookScraper
     await page.setCookie(...this.sessionCookies!);
 
     try {
-      await this.randomDelay(500, 1200);
+      await this.randomDelay(200, 400);
       await page.goto(postUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
       await page.waitForSelector('[role="article"]', { timeout: 15000 });
+      await this.randomDelay(800, 1200);
 
-      await this.randomDelay(2500, 4500);
-
-      await this.showAllComments(page);
-
-      await this.randomDelay(1500, 3000);
-
-      await this.scrollToBottom(page);
-
-      await this.randomDelay(800, 1500);
-
-      await this.expandSeeMore(page);
-
-      await this.randomDelay(800, 1500);
-
-      await this.expandReplies(page);
-
-      await this.randomDelay(800, 1500);
+      if (limit <= 5) {
+        await this.showAllComments(page);
+        await this.randomDelay(400, 700);
+        await this.expandSeeMore(page);
+        await this.randomDelay(300, 500);
+      } else {
+        await this.showAllComments(page);
+        await this.randomDelay(400, 700);
+        await this.scrollToBottom(page);
+        await this.randomDelay(300, 500);
+        await this.expandSeeMore(page);
+        await this.randomDelay(300, 500);
+        await this.expandReplies(page);
+        await this.randomDelay(300, 500);
+      }
 
       const { postContent, comments: allComments } = await this.extractData(page);
 
-      const newComments: FacebookComment[] = [];
-      for (const c of allComments) {
+      const seenThisRun = new Set<string>();
+      const uniqueThisRun = allComments.filter(c => {
         const key = `${c.author}::${c.content}`;
-        if (!this.scrapedCommentKeys.has(key)) {
-          this.scrapedCommentKeys.add(key);
+        if (seenThisRun.has(key)) return false;
+        seenThisRun.add(key);
+        return true;
+      });
+
+      const newComments: FacebookComment[] = [];
+      for (const c of uniqueThisRun) {
+        const key = `${c.author}::${c.content}`;
+        if (!seenKeys.has(key)) {
+          seenKeys.add(key);
           newComments.push(c);
           if (newComments.length >= limit) break;
         }
       }
 
+      console.log(
+        `=== Scrape complete: ${newComments.length} new comments ` +
+        `(${seenKeys.size} total seen for this post) ===`
+      );
+
       return { postContent, comments: newComments };
     } finally {
-      await page.close();
+      if (!page.isClosed()) {
+        await page.close();
+      }
+      if (this.browser?.connected) {
+        await this.browser.close();
+      }
     }
   }
 
@@ -186,15 +203,15 @@ export class FacebookScraper
       const filterBtn = await page.$('[aria-label="Comment filter options"]');
       if (!filterBtn) return;
 
-      await this.randomDelay(400, 900);
+      await this.randomDelay(200, 400);
       await filterBtn.click();
-      await this.randomDelay(800, 1500);
+      await this.randomDelay(400, 700);
 
       const items = await page.$$('[role="menuitem"]');
       if (items.length > 0) {
-        await this.randomDelay(300, 700);
+        await this.randomDelay(150, 300);
         await items[0].click();
-        await this.randomDelay(1500, 3000);
+        await this.randomDelay(600, 1000);
       }
     } catch {
       // Non-fatal
@@ -205,23 +222,21 @@ export class FacebookScraper
     for (let i = 0; i < rounds; i++) {
       const prevHeight = await page.evaluate(() => document.body.scrollHeight);
 
-      // Scroll by a random amount rather than jumping straight to bottom
       await page.evaluate(() => {
         const scrollAmount = Math.floor(Math.random() * 400) + 600;
         window.scrollBy(0, scrollAmount);
       });
 
-      await this.randomDelay(1500, 3000);
+      await this.randomDelay(600, 1000);
 
       const newHeight = await page.evaluate(() => document.body.scrollHeight);
       const scrollY = await page.evaluate(() => window.scrollY);
       const innerHeight = await page.evaluate(() => window.innerHeight);
 
-      // Stop if we've reached the bottom and page didn't grow
       if (newHeight === prevHeight && scrollY + innerHeight >= newHeight - 50) break;
     }
 
-    await this.randomDelay(400, 800);
+    await this.randomDelay(300, 500);
     await page.evaluate(() => window.scrollTo(0, 0));
   }
 
@@ -233,9 +248,9 @@ export class FacebookScraper
       for (const btn of buttons) {
         const text = await btn.evaluate(el => el.textContent?.trim() || '');
         if (text === 'See more') {
-          await this.randomDelay(300, 800);
+          await this.randomDelay(150, 300);
           await btn.click().catch(() => {});
-          await this.randomDelay(300, 700);
+          await this.randomDelay(150, 300);
           found = true;
           break;
         }
@@ -250,9 +265,9 @@ export class FacebookScraper
       for (const btn of buttons) {
         const text = await btn.evaluate(el => el.textContent?.trim() || '');
         if (text.toLowerCase().includes('repl')) {
-          await this.randomDelay(500, 1200);
+          await this.randomDelay(200, 400);
           await btn.click().catch(() => {});
-          await this.randomDelay(1000, 2200);
+          await this.randomDelay(400, 700);
           clicked = true;
           break;
         }
@@ -264,7 +279,6 @@ export class FacebookScraper
   private async extractData(
     page: Page
   ): Promise<{ postContent: string; comments: FacebookComment[] }> {
-
     return page.evaluate(() => {
 
       const getDepth = (el: Element): number => {
@@ -275,10 +289,31 @@ export class FacebookScraper
 
       const allArticles = Array.from(document.querySelectorAll('[role="article"]'));
       const postArticle = allArticles[0];
-      const postContent =
-        postArticle
-          ?.querySelector('[data-ad-comet-preview="message"], [data-ad-preview="message"]')
+
+      let postContent =
+        postArticle?.querySelector('[data-ad-comet-preview="message"], [data-ad-preview="message"]')
           ?.textContent?.trim() ?? '';
+
+      if (!postContent && postArticle) {
+        const dirAutos = Array.from(postArticle.querySelectorAll('[dir="auto"]'));
+        for (const el of dirAutos) {
+          let parent = el.parentElement;
+          let insideComment = false;
+          while (parent && parent !== postArticle) {
+            if (parent.getAttribute('role') === 'article') {
+              insideComment = true;
+              break;
+            }
+            parent = parent.parentElement;
+          }
+          if (insideComment) continue;
+          const text = el.textContent?.trim() || '';
+          if (text.length > 10) {
+            postContent = text;
+            break;
+          }
+        }
+      }
 
       const isDateText = (t: string) => /^\d+[smhdwy]$|^just now$/i.test(t);
 
