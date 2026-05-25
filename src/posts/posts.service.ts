@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Post } from './post.entity';
 import { User } from 'src/users/user.entity';
+import { SocialMediaPlatform } from './types/social-media-platform';
 
 @Injectable()
 export class PostsService {
@@ -13,6 +14,10 @@ export class PostsService {
 
   async findAll(): Promise<Post[]> {
     return this.postRepository.find({ relations: ['trackers'] });
+  }
+
+  async findByPlatform(platform: SocialMediaPlatform): Promise<Post[]> {
+    return this.postRepository.find({ where: { platform }, relations: ['trackers'] });
   }
 
   async findById(id: string): Promise<Post> {

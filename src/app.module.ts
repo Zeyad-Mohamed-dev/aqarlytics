@@ -11,6 +11,10 @@ import { PostsModule } from './posts/posts.module';
 import { AgencyModule } from './agency/agency.module';
 import { ScrapperModule } from './scrapper/scrapper.module';
 import { AnalyzerModule } from './analyzer/analyzer.module';
+import { JobsModule } from './jobs/jobs.module';
+import { BullModule } from '@nestjs/bullmq';
+import { BullModuleConfig } from './configs/BullModuleConfig';
+import { ProcessorModule } from './processor/processor.module';
 
 @Module({
   imports: [
@@ -25,6 +29,9 @@ import { AnalyzerModule } from './analyzer/analyzer.module';
     AgencyModule,
     ScrapperModule,
     AnalyzerModule,
+    JobsModule,
+    BullModule.forRoot(BullModuleConfig),
+    ProcessorModule
   ],
   controllers: [AppController],
   providers: [

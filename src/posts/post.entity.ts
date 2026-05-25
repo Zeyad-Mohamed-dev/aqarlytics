@@ -8,6 +8,7 @@ import {
   JoinTable,
 } from 'typeorm';
 import { User } from 'src/users/user.entity';
+import { SocialMediaPlatform } from './types/social-media-platform';
 
 @Entity('posts')
 export class Post {
@@ -27,6 +28,8 @@ export class Post {
     inverseJoinColumn: { name: 'user_id', referencedColumnName: 'id' },
   })
   trackers: User[];
+
+  platform: SocialMediaPlatform;
 
   @CreateDateColumn()
   createdAt: Date;

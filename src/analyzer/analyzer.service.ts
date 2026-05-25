@@ -1,6 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { FacebookComment } from 'src/scrapper/types/FacebookComment';
-import { ILLMProvider, LLM_PROVIDER } from './providers/llm-provider.interface';
+import {  LLM_PROVIDER } from './providers/llm-provider.interface';
+import type { ILLMProvider } from './providers/llm-provider.interface';
 
 
 export interface AnalyzedComment extends FacebookComment {
