@@ -7,7 +7,7 @@ import { FacebookComment } from './types/FacebookComment';
 
 @Injectable()
 export class FacebookScraper
-  extends Scraper<{ postContent: string; comments: FacebookComment[] }>
+  extends Scraper<{ postContent: string; comments: FacebookComment[]; postUrl: string }>
   implements OnModuleInit, OnModuleDestroy
 {
   private browser: Browser;
@@ -22,10 +22,10 @@ export class FacebookScraper
   }
 
   async onModuleInit() {
-    // this.browser = await puppeteer.launch({
-    //   headless: false,
-    //   args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    // });
+    this.browser = await puppeteer.launch({
+      headless: false,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
 
     if (fs.existsSync(this.cookiePath)) {
       try {
@@ -119,7 +119,7 @@ export class FacebookScraper
     email: string,
     password: string,
     limit = 10,
-  ): Promise<{ postContent: string; comments: FacebookComment[] }> {
+  ): Promise<{ postContent: string; comments: FacebookComment[]; postUrl: string }> {
     if (!this.browser?.connected) {
       this.browser = await puppeteer.launch({
         headless: false,
@@ -187,14 +187,13 @@ export class FacebookScraper
         `(${seenKeys.size} total seen for this post) ===`
       );
 
-      return { postContent, comments: newComments };
+      // postUrl is attached here in Node.js scope, not inside page.evaluate()
+      return { postContent, comments: newComments, postUrl };
     } finally {
       if (!page.isClosed()) {
         await page.close();
       }
-      if (this.browser?.connected) {
-        await this.browser.close();
-      }
+      // Browser is intentionally NOT closed here — only onModuleDestroy() does that
     }
   }
 
@@ -425,6 +424,7 @@ export class FacebookScraper
         }
       }
 
+      // postUrl is NOT returned here — it belongs to Node.js scope, not the browser
       return { postContent, comments };
     });
   }

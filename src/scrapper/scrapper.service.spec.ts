@@ -97,6 +97,7 @@ describe('ScrapperService', () => {
     );
 
     console.log('=== POST CONTENT ===', result.postContent);
+    console.log('=== POST URL ===', result.postUrl);
     console.log('=== COMMENTS ===', JSON.stringify(result.comments, null, 2));
 
     expect(result).toBeDefined();

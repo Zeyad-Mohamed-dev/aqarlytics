@@ -15,6 +15,8 @@ import { JobsModule } from './jobs/jobs.module';
 import { BullModule } from '@nestjs/bullmq';
 import { BullModuleConfig } from './configs/BullModuleConfig';
 import { ProcessorModule } from './processor/processor.module';
+import Redis from 'ioredis';
+import { RedisProvider } from './providers/redis.provider';
 
 @Module({
   imports: [
@@ -36,6 +38,7 @@ import { ProcessorModule } from './processor/processor.module';
   controllers: [AppController],
   providers: [
     AppService,
+    RedisProvider,
     {
       provide: APP_INTERCEPTOR,
       useClass: ResponseInterceptor,

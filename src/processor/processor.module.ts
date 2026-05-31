@@ -6,6 +6,9 @@ import { BullModule } from '@nestjs/bullmq';
         BullModule.registerQueue({
             name: 'scraping',
         }),
+        BullModule.registerQueue({
+            name: 'notifying',
+        })
     ]
     ,
     providers: [],
