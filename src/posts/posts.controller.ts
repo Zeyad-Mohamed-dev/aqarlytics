@@ -1,6 +1,8 @@
 import { Body, Controller, Delete, Get, Post, Req, Request, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { PostsService } from './posts.service';
+import { CreatePageOptions } from 'puppeteer';
+import { CreatePostDto } from './types/create-post-dto';
 
 @Controller('posts')
 export class PostsController {
@@ -15,9 +17,10 @@ export class PostsController {
 
     @Post()
     @UseGuards(JwtAuthGuard)
-    public async createPost(@Request() req, @Body() postUrl: string) {
+    public async createPost(@Request() req, @Body() postUrl: CreatePostDto) {
+        console.log('Received post URL:', postUrl);
         const user = req.user;
-        return this.postsService.create(postUrl, user);
+        return this.postsService.create(postUrl.url, user);
     }
 
     @Delete(':id')

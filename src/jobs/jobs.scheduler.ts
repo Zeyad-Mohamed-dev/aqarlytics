@@ -2,9 +2,15 @@ import { Post } from "src/posts/post.entity";
 import { PostsService } from "src/posts/posts.service";
 import { JobsService } from "./jobs.service";
 import { Cron } from "@nestjs/schedule";
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 
-export class JobsScheduler {
+@Injectable()
+export class JobsScheduler implements OnModuleInit{
     constructor(private readonly postService: PostsService, private readonly jobService: JobsService) { }
+    async onModuleInit() {
+        Logger.log('Initializing Jobs Scheduler and scheduling initial jobs...');
+        await this.scheduleJobs();
+    }
 
     @Cron('0 */30 * * * *')
     async scheduleJobs() {

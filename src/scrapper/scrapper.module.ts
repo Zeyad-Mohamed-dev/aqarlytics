@@ -5,6 +5,8 @@ import { PostsModule } from 'src/posts/posts.module';
 
 @Module({
   providers: [ScrapperService, FacebookScraper],
-  imports: [PostsModule]
+  imports: [PostsModule],
+  exports: [ScrapperService, FacebookScraper],
+
 })
 export class ScrapperModule {}

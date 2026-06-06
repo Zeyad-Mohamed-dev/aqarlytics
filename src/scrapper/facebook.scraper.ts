@@ -4,6 +4,7 @@ import * as path from 'path';
 import puppeteer, { Browser, Page } from 'puppeteer';
 import { Scraper } from './scraper.interface';
 import { FacebookComment } from './types/FacebookComment';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class FacebookScraper
@@ -162,10 +163,17 @@ export class FacebookScraper
         await this.randomDelay(300, 500);
       }
 
+      // Extract data without IDs (browser context can't use Node.js crypto)
       const { postContent, comments: allComments } = await this.extractData(page);
 
+      // Generate IDs in Node.js scope
+      const commentsWithIds: FacebookComment[] = allComments.map(c => ({
+        ...c,
+        id: `${c.author}::${randomUUID()}`,
+      }));
+
       const seenThisRun = new Set<string>();
-      const uniqueThisRun = allComments.filter(c => {
+      const uniqueThisRun = commentsWithIds.filter(c => {
         const key = `${c.author}::${c.content}`;
         if (seenThisRun.has(key)) return false;
         seenThisRun.add(key);
@@ -187,13 +195,11 @@ export class FacebookScraper
         `(${seenKeys.size} total seen for this post) ===`
       );
 
-      // postUrl is attached here in Node.js scope, not inside page.evaluate()
       return { postContent, comments: newComments, postUrl };
     } finally {
       if (!page.isClosed()) {
         await page.close();
       }
-      // Browser is intentionally NOT closed here — only onModuleDestroy() does that
     }
   }
 
@@ -277,7 +283,7 @@ export class FacebookScraper
 
   private async extractData(
     page: Page
-  ): Promise<{ postContent: string; comments: FacebookComment[] }> {
+  ): Promise<{ postContent: string; comments: Omit<FacebookComment, 'id'>[] }> {
     return page.evaluate(() => {
 
       const getDepth = (el: Element): number => {
@@ -316,14 +322,7 @@ export class FacebookScraper
 
       const isDateText = (t: string) => /^\d+[smhdwy]$|^just now$/i.test(t);
 
-      const parseArticle = (el: Element): {
-        author: string;
-        authorUrl: string;
-        content: string;
-        timestamp: string;
-        mentionedAuthor: string;
-        isMention: boolean;
-      } => {
+      const parseArticle = (el: Element) => {
         const allLinks = Array.from(
           el.querySelectorAll('a[href*="facebook.com"], a[href^="/"]')
         ) as HTMLAnchorElement[];
@@ -424,7 +423,6 @@ export class FacebookScraper
         }
       }
 
-      // postUrl is NOT returned here — it belongs to Node.js scope, not the browser
       return { postContent, comments };
     });
   }
