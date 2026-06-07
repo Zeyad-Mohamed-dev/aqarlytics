@@ -21,10 +21,10 @@ export class User {
   @Column({ type: 'enum', enum: UserRole, default: UserRole.SELLER })
   role: UserRole;
 
-  @Column({ nullable: true })
+  @Column()
   firstName: string;
 
-  @Column({ nullable: true })
+  @Column()
   lastName: string;
 
   @Column({ default: true })
@@ -32,6 +32,9 @@ export class User {
 
   @CreateDateColumn()
   createdAt: Date;
+
+  @Column({ unique: true })
+  phoneNumber: number;
 
   @UpdateDateColumn()
   updatedAt: Date;
