@@ -1,7 +1,6 @@
 import { InjectQueue, Processor, WorkerHost } from "@nestjs/bullmq";
 import { Inject, Logger } from "@nestjs/common";
 import { Job, Queue } from "bullmq";
-import { BulkJobOptions } from "bullmq";
 import Redis from "ioredis";
 import { REDIS_CLIENT } from "src/providers/redis.provider";
 import { ScrapperService } from "src/scrapper/scrapper.service";
@@ -12,15 +11,18 @@ import { FacebookComment } from "src/scrapper/types/FacebookComment";
 })
 export class ScrappingProcessor extends WorkerHost {
 
-    constructor(private readonly scrapper: ScrapperService,
+    constructor(
+        private readonly scrapper: ScrapperService,
         private readonly logger: Logger,
         @InjectQueue('notifying') private readonly notificationQueue: Queue,
-        @Inject(REDIS_CLIENT) private readonly redis: Redis) {
+        @Inject(REDIS_CLIENT) private readonly redis: Redis
+    ) {
         super();
     }
 
     async process(job: Job, token?: string): Promise<any> {
-        Logger.log(`Processing job ${job.id} for URL: ${job.data.postUrl}`);
+        this.logger.log(`Processing job ${job.id} for URL: ${job.data.postUrl}`);
+
         const email = process.env.FACEBOOK_EMAIL || '';
         const password = process.env.FACEBOOK_PASSWORD || '';
         const { comments } = await this.scrapper.scrapeFacebook(job.data.postUrl, email, password);
@@ -30,46 +32,44 @@ export class ScrappingProcessor extends WorkerHost {
             return { status: 'no_comments' };
         }
 
-        const postTrackerKey = `post:${job.data.postId || encodeURIComponent(job.data.postUrl)}:comments`;
-        const pipeline = this.redis.pipeline();
+        const newCommentsByTracker = new Map<string, FacebookComment[]>();
 
-        comments.forEach((comment: FacebookComment) => {
-            pipeline.sadd(postTrackerKey, comment.id);  // Fix 1: add `id` to FacebookComment type
-        });
-        pipeline.expire(postTrackerKey, 60 * 60 * 24 * 7);
+        for (const tracker of job.data.trackers) {
+            const trackerKey = `post:${job.data.postId || encodeURIComponent(job.data.postUrl)}:tracker:${tracker.id}:comments`;
+            const pipeline = this.redis.pipeline();
 
-        // Fix 2: handle null from pipeline.exec()
-        const pipelineResults = await pipeline.exec() ?? [];
+            comments.forEach((comment: FacebookComment) => {
+                pipeline.sadd(trackerKey, comment.id);
+            });
+            pipeline.expire(trackerKey, 60 * 60 * 24 * 7);
 
-        // Fix 3: explicit type guard instead of .filter(Boolean)
-        const newNotificationJobs: { name: string; data: any; opts?: BulkJobOptions }[] = [];
+            const results = await pipeline.exec() ?? [];
+            const newComments: FacebookComment[] = [];
 
-        comments.forEach((comment, index) => {
-            const entry = pipelineResults[index];
-            if (!entry) return;
+            comments.forEach((comment, index) => {
+                const entry = results[index];
+                if (!entry) return;
+                const [err, result] = entry;
+                if (!err && result === 1) {
+                    newComments.push(comment);
+                }
+            });
 
-            const [err, result] = entry;
-            if (err) {
-                this.logger.error(`Error processing comment ${comment.id}: ${err.message}`);
-                return;
+            if (newComments.length > 0) {
+                newCommentsByTracker.set(tracker.id, newComments);
             }
-            if (result === 1) {
-                newNotificationJobs.push({
-                    name: 'new_comment',
-                    data: {
-                        postUrl: job.data.postUrl,
-                        comment,
-                        trackers: job.data.trackers,
-                    },
-                });
-            }
-        });
-
-        if (newNotificationJobs.length > 0) {
-            await this.notificationQueue.addBulk(newNotificationJobs);
-            this.logger.log(`Added ${newNotificationJobs.length} new notification jobs for URL: ${job.data.postUrl}`);
         }
 
-        return { status: 'done', newComments: newNotificationJobs.length };
+        for (const [trackerId, newComments] of newCommentsByTracker) {
+            const tracker = job.data.trackers.find((t: any) => t.id === trackerId);
+            await this.notificationQueue.add('new_comments', {
+                postUrl: job.data.postUrl,
+                comments: newComments,
+                tracker,
+            });
+            this.logger.log(`Added notification job for tracker ${trackerId} with ${newComments.length} new comments`);
+        }
+
+        return { status: 'done', newComments: newCommentsByTracker.size };
     }
 }

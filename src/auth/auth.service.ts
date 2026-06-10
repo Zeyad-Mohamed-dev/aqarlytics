@@ -39,6 +39,9 @@ async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
   const newUser = await this.usersService.saveUser({
     email: registerDto.email,
     password: registerDto.password,
+    firstName: registerDto.firstName,
+    lastName: registerDto.lastName,
+    phoneNumber: parseInt(registerDto.phoneNumber, 10),
     role: registerDto.role || UserRole.SELLER,
   } as any);
 
