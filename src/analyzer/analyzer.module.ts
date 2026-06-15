@@ -9,6 +9,7 @@ import { GroqProvider } from './providers/GroqProvider';
       provide: LLM_PROVIDER,
       useClass: GroqProvider,
     }
-  ]
+  ],
+  exports: [AnalyzerService, LLM_PROVIDER],
 })
 export class AnalyzerModule {}

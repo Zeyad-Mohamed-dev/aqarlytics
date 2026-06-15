@@ -17,6 +17,10 @@ import { BullModuleConfig } from './configs/BullModuleConfig';
 import { ProcessorModule } from './processor/processor.module';
 import Redis from 'ioredis';
 import { RedisProvider } from './providers/redis.provider';
+import { WhatsappModule } from './whatsapp/whatsapp-sender.module';
+import { NotificationModule } from './notification/notification.module';
+import { TelegramService } from './telegram/telegram.service';
+import { TelegramModule } from './telegram/telegram.module';
 
 @Module({
   imports: [
@@ -33,7 +37,10 @@ import { RedisProvider } from './providers/redis.provider';
     AnalyzerModule,
     JobsModule,
     BullModule.forRoot(BullModuleConfig),
-    ProcessorModule
+    ProcessorModule,
+    WhatsappModule,
+    NotificationModule,
+    TelegramModule
   ],
   controllers: [AppController],
   providers: [
@@ -43,6 +50,7 @@ import { RedisProvider } from './providers/redis.provider';
       provide: APP_INTERCEPTOR,
       useClass: ResponseInterceptor,
     },
+    TelegramService,
   ],
 })
 export class AppModule {}

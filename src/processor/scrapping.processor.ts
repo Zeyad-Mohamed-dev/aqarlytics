@@ -4,6 +4,7 @@ import { Job, Queue } from "bullmq";
 import Redis from "ioredis";
 import { REDIS_CLIENT } from "src/providers/redis.provider";
 import { ScrapperService } from "src/scrapper/scrapper.service";
+import { AnalyzerService } from "src/analyzer/analyzer.service";
 import { FacebookComment } from "src/scrapper/types/FacebookComment";
 
 @Processor('scraping', {
@@ -13,6 +14,7 @@ export class ScrappingProcessor extends WorkerHost {
 
     constructor(
         private readonly scrapper: ScrapperService,
+        private readonly analyzer: AnalyzerService,
         private readonly logger: Logger,
         @InjectQueue('notifying') private readonly notificationQueue: Queue,
         @Inject(REDIS_CLIENT) private readonly redis: Redis
@@ -25,7 +27,7 @@ export class ScrappingProcessor extends WorkerHost {
 
         const email = process.env.FACEBOOK_EMAIL || '';
         const password = process.env.FACEBOOK_PASSWORD || '';
-        const { comments } = await this.scrapper.scrapeFacebook(job.data.postUrl, email, password);
+        const { comments, postContent } = await this.scrapper.scrapeFacebook(job.data.postUrl, email, password);
 
         if (!comments || comments.length === 0) {
             this.logger.log(`No comments found for URL: ${job.data.postUrl}`);
@@ -62,12 +64,20 @@ export class ScrappingProcessor extends WorkerHost {
 
         for (const [trackerId, newComments] of newCommentsByTracker) {
             const tracker = job.data.trackers.find((t: any) => t.id === trackerId);
+
+            const interestedComments = await this.analyzer.analyzeComments(postContent, newComments);
+
+            if (interestedComments.length === 0) {
+                this.logger.log(`No interested comments for tracker ${trackerId}, skipping notification`);
+                continue;
+            }
+
             await this.notificationQueue.add('new_comments', {
                 postUrl: job.data.postUrl,
-                comments: newComments,
+                comments: interestedComments,
                 tracker,
             });
-            this.logger.log(`Added notification job for tracker ${trackerId} with ${newComments.length} new comments`);
+            this.logger.log(`Added notification job for tracker ${trackerId} with ${interestedComments.length} interested comments`);
         }
 
         return { status: 'done', newComments: newCommentsByTracker.size };

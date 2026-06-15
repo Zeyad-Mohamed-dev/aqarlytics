@@ -9,13 +9,14 @@ import { GroqProvider } from './providers/GroqProvider';
 
 const mockComments: FacebookComment[] = [
   {
+    id: 'c1',
     author: 'Ahmed Mohamed',
     authorUrl: 'https://facebook.com/ahmed.mohamed',
     content: 'كام سعر المتر؟ وفيه تقسيط؟',
     timestamp: '2h',
     replies: [],
   },
-  {
+  {id: 'c1',
     author: 'Sara Ali',
     authorUrl: 'https://facebook.com/sara.ali',
     content: 'ماشاء الله 😍',
@@ -23,6 +24,7 @@ const mockComments: FacebookComment[] = [
     replies: [],
   },
   {
+    id: 'c1',
     author: 'Mohamed Hassan',
     authorUrl: 'https://facebook.com/mohamed.hassan',
     content: 'عايز أعمل معاينة امتى ممكن؟ رقمك كام؟',
@@ -30,6 +32,7 @@ const mockComments: FacebookComment[] = [
     replies: [],
   },
   {
+    id: 'c1',
     author: 'Nour Khaled',
     authorUrl: 'https://facebook.com/nour.khaled',
     content: 'تم التواصل مع حضرتك 👍',
@@ -37,6 +40,7 @@ const mockComments: FacebookComment[] = [
     replies: [],
   },
   {
+    id: 'c1',
     author: 'Omar Samy',
     authorUrl: 'https://facebook.com/omar.samy',
     content: 'الشقة دي فين بالظبط؟ وفيه اسانسير؟',
@@ -45,6 +49,7 @@ const mockComments: FacebookComment[] = [
   },
   // ── Spam ────────────────────────────────────────────────────────────
   {
+    id: 'c1',
     author: 'Real Estate Ads',
     authorUrl: 'https://facebook.com/realestate.ads',
     content: 'عندنا شقق أحسن بأسعار أرخص! تواصل معانا دلوقتي 01xxxxxxxx',
@@ -52,6 +57,7 @@ const mockComments: FacebookComment[] = [
     replies: [],
   },
   {
+    id: 'c1',
     author: 'Youssef Broker',
     authorUrl: 'https://facebook.com/youssef.broker',
     content: 'أنا وسيط عقاري معايا وحدات أفضل في نفس المنطقة، تواصل معايا',
@@ -60,6 +66,7 @@ const mockComments: FacebookComment[] = [
   },
   // ── Generic reactions ───────────────────────────────────────────────
   {
+    id: 'c1',
     author: 'Layla Hassan',
     authorUrl: 'https://facebook.com/layla.hassan',
     content: '❤️❤️❤️',
@@ -67,6 +74,7 @@ const mockComments: FacebookComment[] = [
     replies: [],
   },
   {
+    id: 'c1',
     author: 'Karim Adel',
     authorUrl: 'https://facebook.com/karim.adel',
     content: 'ربنا يوفق الجميع 🙏',
@@ -75,6 +83,7 @@ const mockComments: FacebookComment[] = [
   },
   // ── Tagging friends with no intent ──────────────────────────────────
   {
+    id: 'c1',
     author: 'Mona Tarek',
     authorUrl: 'https://facebook.com/mona.tarek',
     content: 'يا @حسن شوف الشقة دي',
@@ -82,6 +91,7 @@ const mockComments: FacebookComment[] = [
     replies: [],
   },
   {
+    id: 'c1',
     author: 'Hana Mostafa',
     authorUrl: 'https://facebook.com/hana.mostafa',
     content: '@سارة @ريم تعالوا شوفوا 😂',
@@ -90,6 +100,7 @@ const mockComments: FacebookComment[] = [
   },
   // ── Irrelevant / off topic ───────────────────────────────────────────
   {
+    id: 'c1',
     author: 'Ahmed Fawzy',
     authorUrl: 'https://facebook.com/ahmed.fawzy',
     content: 'الأسعار دي مش مناسبة خالص للناس العادية، غلاء فاحش',
@@ -97,6 +108,7 @@ const mockComments: FacebookComment[] = [
     replies: [],
   },
   {
+    id: 'c1',
     author: 'Dina Ramzy',
     authorUrl: 'https://facebook.com/dina.ramzy',
     content: 'اللي عنده فلوس يشتري 😂 احنا بنحلم بإيجار',

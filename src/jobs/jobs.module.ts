@@ -12,7 +12,7 @@ import { ScrapperModule } from 'src/scrapper/scrapper.module';
   imports: [
     PostsModule,
     ScrapperModule,
-    ScheduleModule.forRoot(), // 👈 add
+    ScheduleModule.forRoot(),
     BullModule.registerQueue(
       { name: 'scraping' },
       { name: 'notifying' },
@@ -20,11 +20,10 @@ import { ScrapperModule } from 'src/scrapper/scrapper.module';
   ],
   providers: [
     JobsService,
-    JobsScheduler,      // 👈 add
-    ScrappingProcessor,
+    JobsScheduler,     
+    // ScrappingProcessor,
     Logger,
     RedisProvider,
-    // 👆 ScrapperService removed, it comes from ScrapperModule
   ],
   exports: [JobsService],
 })
