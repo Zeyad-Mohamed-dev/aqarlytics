@@ -21,7 +21,7 @@ export class JobsScheduler implements OnModuleInit{
         }
         for (const post of posts) {
             try {
-                await this.jobService.addScrapingJob(post.url, post.trackers);
+                await this.jobService.addScrapingJob(post.id, post.url, post.trackers);
             } catch (err) {
                 console.error(`Failed to queue job for ${post.url}:`, err);
             }

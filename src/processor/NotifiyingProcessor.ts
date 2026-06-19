@@ -25,7 +25,7 @@ export class NotifyingProcessor extends WorkerHost {
         return Promise.resolve({ status: 'notifications_sent' });
     }
 
-    async sendNotification(to: string, message: string, type: 'whatsapp' | 'telegram'): Promise<void> {
+    private async sendNotification(to: string, message: string, type: 'whatsapp' | 'telegram'): Promise<void> {
         try {
             if (type === 'whatsapp') {
                 await this.notificationService.sendWhatsappNotification(to, message);

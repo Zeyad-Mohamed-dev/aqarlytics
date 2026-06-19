@@ -1,98 +1,117 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Aqarlytics
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Aqarlytics is a NestJS backend service for monitoring social media responses to real estate listings. It tracks Facebook post URLs, scrapes comments, extracts structured listing data, analyzes interest with an LLM provider, and delivers alerts through WhatsApp and Telegram.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## What is developed in this project
 
-## Description
+- JWT authentication and user registration with email provider validation.
+- PostgreSQL database integration using TypeORM.
+- User-managed tracking of social media posts.
+- Facebook comment scraping using Puppeteer and session cookie reuse.
+- Structured listing extraction into market observations for analytics and pricing use cases.
+- Background job orchestration with BullMQ and Redis.
+- Recurring scraping scheduling via NestJS Cron.
+- Comment analysis using a configurable LLM provider (`GroqProvider`).
+- Notification channels for WhatsApp and Telegram.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Architecture overview
 
-## Project setup
+- `src/app.module.ts` imports and configures all modules, BullMQ, Redis, and global interceptors.
+- `src/auth` handles auth, login, registration, JWT issuance, and user profile retrieval.
+- `src/users` manages user persistence and password hashing.
+- `src/posts` stores tracked post URLs, links users as trackers, and manages tracking state.
+- `src/scrapper` contains Facebook scraping logic and login/session handling.
+- `src/analyzer` evaluates comments with an LLM to identify interested leads.
+- `src/analytics` stores normalized location data and market observations extracted from scraped post content.
+- `src/jobs` schedules scraping jobs and adds work to queues.
+- `src/processor` runs worker processors for scraping, market-observation extraction, and notification distribution.
+- `src/notification` coordinates notification sending using WhatsApp and Telegram.
 
-```bash
-$ npm install
+## Features
+
+- Register and log in users.
+- Track Facebook posts by URL.
+- Periodic scraping jobs for all tracked posts.
+- Automatic `MarketObservation` extraction from scraped post content.
+- Comment deduplication and new-comment detection.
+- Interest analysis for buyer/renter intent.
+- Notification sending via WhatsApp and Telegram.
+
+## Environment variables
+
+Create a `.env` file in the repository root with values like:
+
+```env
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_USER=postgres
+DATABASE_PASSWORD=postgres
+DATABASE_NAME=aqarlytics
+JWT_SECRET=your_jwt_secret
+REDIS_HOST=localhost
+REDIS_PORT=6379
+FACEBOOK_EMAIL=your_fb_email
+FACEBOOK_PASSWORD=your_fb_password
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+GROQ_API_KEY=your_groq_api_key
 ```
 
-## Compile and run the project
+## Requirements
+
+- Node.js 20+
+- PostgreSQL
+- Redis
+- Facebook account credentials for scraping
+- Telegram bot token
+- Groq API key for LLM analysis
+
+## Installation
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npm install
 ```
 
-## Run tests
+## Run locally
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm run start:dev
 ```
 
-## Deployment
+## Scripts
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+- `npm run start` - start the application
+- `npm run start:dev` - start in watch mode
+- `npm run build` - compile TypeScript
+- `npm run lint` - run ESLint
+- `npm run test` - run unit tests
+- `npm run test:e2e` - run e2e tests
+- `npm run test:cov` - generate coverage
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## API endpoints
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
+### Authentication
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+- `POST /auth/register` - create a new user
+- `POST /auth/login` - authenticate and receive JWT
+- `GET /auth/profile` - get current user profile (requires JWT)
 
-## Resources
+### Post tracking
 
-Check out a few resources that may come in handy when working with NestJS:
+- `GET /posts` - list posts tracked by the authenticated user
+- `POST /posts` - create a tracked post URL
+- `DELETE /posts/:id` - remove a tracked post for the current user
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+## Notes
 
-## Support
+- The current scraper is Facebook-specific.
+- Structured listing extraction runs inside the scraping processor and persists `MarketObservation` records when a tracked post includes extractable listing details.
+- `src/leads` exists but does not contain active lead-processing logic yet.
+- WhatsApp sessions are stored in `auth_sessions/`.
+- Notifications are delivered through configured notifier implementations.
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## Next steps
 
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- Add full lead management under `src/leads`.
+- Expand scraper support to additional platforms.
+- Harden error handling and retry logic in workers.
+- Add API documentation and endpoint validation.

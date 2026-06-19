@@ -10,6 +10,8 @@ import { NotificationModule } from 'src/notification/notification.module';
 import { AnalyzerModule } from 'src/analyzer/analyzer.module';
 import { LLM_PROVIDER } from 'src/analyzer/providers/llm-provider.interface';
 import { AnalyzerService } from 'src/analyzer/analyzer.service';
+import { LeadsModule } from 'src/leads/leads.module';
+import { AnalyticsModule } from 'src/analytics/analytics.module';
 
 @Module({
   imports: [
@@ -18,7 +20,9 @@ import { AnalyzerService } from 'src/analyzer/analyzer.service';
     ScrapperModule,
     PostsModule,
     AnalyzerModule,
-    NotificationModule
+    NotificationModule,
+    LeadsModule,
+    AnalyticsModule,
   ],
   providers: [
     ScrappingProcessor,

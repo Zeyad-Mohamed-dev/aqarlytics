@@ -4,13 +4,14 @@ import { Queue } from "bullmq";
 import { ScrapperService } from "src/scrapper/scrapper.service";
 @Injectable()
 export class JobsService {
-    constructor(
+  constructor(
     @InjectQueue('scraping') private readonly scrapingQueue: Queue,
     private readonly scrapperService: ScrapperService
   ) {}
 
-  async addScrapingJob(postUrl, trackers) {
+  async addScrapingJob(postId: string, postUrl, trackers) {
     const job = await this.scrapingQueue.add('scraping', {
+        postId,
         postUrl,
         trackers, 
         platform: 'facebook'

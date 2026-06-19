@@ -5,7 +5,9 @@ import Redis from "ioredis";
 import { REDIS_CLIENT } from "src/providers/redis.provider";
 import { ScrapperService } from "src/scrapper/scrapper.service";
 import { AnalyzerService } from "src/analyzer/analyzer.service";
+import { LeadsService } from "src/leads/leads.service";
 import { FacebookComment } from "src/scrapper/types/FacebookComment";
+import { ListingExtractorService } from "src/analytics/services/ListingExtractorService";
 
 @Processor('scraping', {
     concurrency: 1
@@ -15,6 +17,8 @@ export class ScrappingProcessor extends WorkerHost {
     constructor(
         private readonly scrapper: ScrapperService,
         private readonly analyzer: AnalyzerService,
+        private readonly leadsService: LeadsService,
+        private readonly listingExtractorService: ListingExtractorService,
         private readonly logger: Logger,
         @InjectQueue('notifying') private readonly notificationQueue: Queue,
         @Inject(REDIS_CLIENT) private readonly redis: Redis
@@ -28,6 +32,16 @@ export class ScrappingProcessor extends WorkerHost {
         const email = process.env.FACEBOOK_EMAIL || '';
         const password = process.env.FACEBOOK_PASSWORD || '';
         const { comments, postContent } = await this.scrapper.scrapeFacebook(job.data.postUrl, email, password);
+
+        if (job.data.postId) {
+            await this.listingExtractorService.extractAndPersist(
+                job.data.postId,
+                postContent,
+                job.data.postUrl,
+            );
+        } else {
+            this.logger.warn(`Skipping market observation extraction for job ${job.id} because postId is missing`);
+        }
 
         if (!comments || comments.length === 0) {
             this.logger.log(`No comments found for URL: ${job.data.postUrl}`);
@@ -70,6 +84,14 @@ export class ScrappingProcessor extends WorkerHost {
             if (interestedComments.length === 0) {
                 this.logger.log(`No interested comments for tracker ${trackerId}, skipping notification`);
                 continue;
+            }
+
+            for (const comment of interestedComments) {
+                await this.leadsService.create({
+                    profileUrl: comment.authorUrl,
+                    postUrl: job.data.postUrl,
+                    comment: comment.content,
+                });
             }
 
             await this.notificationQueue.add('new_comments', {

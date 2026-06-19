@@ -21,6 +21,7 @@ import { WhatsappModule } from './whatsapp/whatsapp-sender.module';
 import { NotificationModule } from './notification/notification.module';
 import { TelegramService } from './telegram/telegram.service';
 import { TelegramModule } from './telegram/telegram.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -40,7 +41,8 @@ import { TelegramModule } from './telegram/telegram.module';
     ProcessorModule,
     WhatsappModule,
     NotificationModule,
-    TelegramModule
+    TelegramModule,
+    AnalyticsModule
   ],
   controllers: [AppController],
   providers: [
