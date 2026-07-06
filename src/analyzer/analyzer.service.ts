@@ -73,4 +73,18 @@ If no interested comments found, return empty array: []`;
         reason: r.reason,
       }));
   }
+
+  async isRealEstateRelated(content: string): Promise<boolean> {
+  if (!content || content.trim().length === 0) return false;
+
+  const response = await this.llmProvider.complete(
+    'You classify Facebook post text. Reply with exactly "true" or "false" and nothing else. ' +
+    'Reply "true" only if the post is about real estate in Egypt — property for sale/rent, apartments, land, villas, compounds, brokers, real estate ads, etc. The text may be Arabic or English. ' 
+    +  content);
+
+  if (!response) return false;
+
+  const answer = response.trim().toLowerCase();
+  return answer === 'true';
+}
 }

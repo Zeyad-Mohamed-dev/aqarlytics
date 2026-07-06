@@ -430,4 +430,39 @@ export class FacebookScraper
   private delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
+
+  async getPostContent(
+  postUrl: string,
+  email: string,
+  password: string,
+): Promise<string> {
+  if (!this.browser?.connected) {
+    this.browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+  }
+
+  await this.login(email, password);
+
+  const page = await this.browser.newPage();
+  await page.setUserAgent(
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+  );
+  await page.setCookie(...this.sessionCookies!);
+
+  try {
+    await this.randomDelay(200, 400);
+    await page.goto(postUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForSelector('[role="article"]', { timeout: 15000 });
+    await this.randomDelay(500, 800);
+
+    const { postContent } = await this.extractData(page);
+    return postContent;
+  } finally {
+    if (!page.isClosed()) {
+      await page.close();
+    }
+  }
+}
 }

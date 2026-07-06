@@ -15,6 +15,7 @@ import { ScrapperModule } from 'src/scrapper/scrapper.module';
     BullModule.registerQueue(
       { name: 'scraping' },
       { name: 'notifying' },
+      { name: 'classify-content'}
     ),
   ],
   providers: [

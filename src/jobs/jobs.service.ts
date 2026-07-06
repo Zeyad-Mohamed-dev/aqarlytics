@@ -6,6 +6,7 @@ import { ScrapperService } from "src/scrapper/scrapper.service";
 export class JobsService {
   constructor(
     @InjectQueue('scraping') private readonly scrapingQueue: Queue,
+    @InjectQueue('classify-content') private readonly classifyContentQueue: Queue,
     private readonly scrapperService: ScrapperService
   ) {}
 
@@ -25,5 +26,13 @@ export class JobsService {
     return job.id;
   }
 
-  async addNotificationJob() {}
+  async addClassifyContentJob(url: string) {
+    const job = await this.classifyContentQueue.add('classify-content', {
+        url,
+        platform: 'facebook'
+    })
+
+    Logger.log(`Added classify content job for ${url} with ID ${job.id}`);
+    return job.id;
+  }
 }
