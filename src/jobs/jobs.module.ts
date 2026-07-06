@@ -5,7 +5,6 @@ import { PostsModule } from 'src/posts/posts.module';
 import { JobsService } from './jobs.service';
 import { BullModule } from '@nestjs/bullmq';
 import { ScrappingProcessor } from 'src/processor/scrapping.processor';
-import { RedisProvider } from 'src/providers/redis.provider';
 import { ScrapperModule } from 'src/scrapper/scrapper.module';
 
 @Module({
@@ -23,7 +22,6 @@ import { ScrapperModule } from 'src/scrapper/scrapper.module';
     JobsScheduler,     
     // ScrappingProcessor,
     Logger,
-    RedisProvider,
   ],
   exports: [JobsService],
 })

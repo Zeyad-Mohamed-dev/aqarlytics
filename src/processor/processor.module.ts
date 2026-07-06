@@ -5,13 +5,13 @@ import { NotifyingProcessor } from './NotifiyingProcessor';
 import { ScrapperModule } from 'src/scrapper/scrapper.module';
 import { PostsModule } from 'src/posts/posts.module';
 import { Logger } from '@nestjs/common';
-import { RedisProvider } from 'src/providers/redis.provider';
 import { NotificationModule } from 'src/notification/notification.module';
 import { AnalyzerModule } from 'src/analyzer/analyzer.module';
 import { LLM_PROVIDER } from 'src/analyzer/providers/llm-provider.interface';
 import { AnalyzerService } from 'src/analyzer/analyzer.service';
 import { LeadsModule } from 'src/leads/leads.module';
 import { AnalyticsModule } from 'src/analytics/analytics.module';
+import { RedisModule } from 'src/redis/redis.module';
 
 @Module({
   imports: [
@@ -23,13 +23,13 @@ import { AnalyticsModule } from 'src/analytics/analytics.module';
     NotificationModule,
     LeadsModule,
     AnalyticsModule,
+    RedisModule,
   ],
   providers: [
     ScrappingProcessor,
     NotifyingProcessor,
     Logger,
     AnalyzerService,
-    RedisProvider
   ],
   exports: [
     BullModule.registerQueue({ name: 'scraping' }),

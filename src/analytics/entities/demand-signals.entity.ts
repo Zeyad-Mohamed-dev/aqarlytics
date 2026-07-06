@@ -24,10 +24,10 @@ export class DemandSignal {
 
   @ManyToOne(() => LocationDimension, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'location_id' })
-  location: LocationDimension;
+  location: LocationDimension | null;
 
-  @Column({ name: 'location_id', nullable: true })
-  locationId: string;
+  @Column({ name: 'location_id', type: 'uuid', nullable: true })
+  locationId: string | null;
 
   @Column()
   commentId: string;
@@ -51,7 +51,7 @@ export class DemandSignal {
   reason: string;
 
   @Column({ type: 'enum', enum: PropertyType, nullable: true })
-  propertyType: PropertyType;
+  propertyType: PropertyType | null;
 
   @Column({ nullable: true })
   intentCategory: string;

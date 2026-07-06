@@ -4,8 +4,8 @@ import { Logger } from '@nestjs/common';
 import { Queue, Worker, Job } from 'bullmq';
 import { ScrappingProcessor } from 'src/processor/scrapping.processor';
 import { ScrapperService } from 'src/scrapper/scrapper.service';
-import { REDIS_CLIENT } from 'src/providers/redis.provider';
 import Redis from 'ioredis';
+import { RedisService } from 'src/redis/redis.service';
 
 // Real Redis connection — make sure Redis is running on localhost:6379
 const redisConnection = { host: 'localhost', port: 6379 };
@@ -63,8 +63,12 @@ describe('ScrappingProcessor → NotifyingQueue (e2e)', () => {
           },
         },
         {
-          provide: REDIS_CLIENT,
-          useValue: redis,
+          provide: RedisService,
+          useValue: {
+            filterNewCommentsForTracker: jest
+              .fn()
+              .mockImplementation(async (_postIdOrUrl, _trackerId, comments) => comments),
+          },
         },
         {
           provide: Logger,

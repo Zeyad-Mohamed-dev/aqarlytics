@@ -1,13 +1,13 @@
 import { InjectQueue, Processor, WorkerHost } from "@nestjs/bullmq";
-import { Inject, Logger } from "@nestjs/common";
+import { Logger } from "@nestjs/common";
 import { Job, Queue } from "bullmq";
-import Redis from "ioredis";
-import { REDIS_CLIENT } from "src/providers/redis.provider";
 import { ScrapperService } from "src/scrapper/scrapper.service";
 import { AnalyzerService } from "src/analyzer/analyzer.service";
 import { LeadsService } from "src/leads/leads.service";
 import { FacebookComment } from "src/scrapper/types/FacebookComment";
 import { ListingExtractorService } from "src/analytics/services/ListingExtractorService";
+import { DemandSignalService } from "src/analytics/services/DemandSignalService";
+import { RedisService } from "src/redis/redis.service";
 
 @Processor('scraping', {
     concurrency: 1
@@ -19,9 +19,10 @@ export class ScrappingProcessor extends WorkerHost {
         private readonly analyzer: AnalyzerService,
         private readonly leadsService: LeadsService,
         private readonly listingExtractorService: ListingExtractorService,
+        private readonly demandSignalService: DemandSignalService,
+        private readonly redisService: RedisService,
         private readonly logger: Logger,
         @InjectQueue('notifying') private readonly notificationQueue: Queue,
-        @Inject(REDIS_CLIENT) private readonly redis: Redis
     ) {
         super();
     }
@@ -49,27 +50,14 @@ export class ScrappingProcessor extends WorkerHost {
         }
 
         const newCommentsByTracker = new Map<string, FacebookComment[]>();
+        const postCacheKey = job.data.postId || encodeURIComponent(job.data.postUrl);
 
         for (const tracker of job.data.trackers) {
-            const trackerKey = `post:${job.data.postId || encodeURIComponent(job.data.postUrl)}:tracker:${tracker.id}:comments`;
-            const pipeline = this.redis.pipeline();
-
-            comments.forEach((comment: FacebookComment) => {
-                pipeline.sadd(trackerKey, comment.id);
-            });
-            pipeline.expire(trackerKey, 60 * 60 * 24 * 7);
-
-            const results = await pipeline.exec() ?? [];
-            const newComments: FacebookComment[] = [];
-
-            comments.forEach((comment, index) => {
-                const entry = results[index];
-                if (!entry) return;
-                const [err, result] = entry;
-                if (!err && result === 1) {
-                    newComments.push(comment);
-                }
-            });
+            const newComments = await this.redisService.filterNewCommentsForTracker(
+                postCacheKey,
+                tracker.id,
+                comments,
+            );
 
             if (newComments.length > 0) {
                 newCommentsByTracker.set(tracker.id, newComments);
@@ -84,6 +72,10 @@ export class ScrappingProcessor extends WorkerHost {
             if (interestedComments.length === 0) {
                 this.logger.log(`No interested comments for tracker ${trackerId}, skipping notification`);
                 continue;
+            }
+
+            if (job.data.postId) {
+                await this.demandSignalService.persistMany(job.data.postId, interestedComments);
             }
 
             for (const comment of interestedComments) {

@@ -15,13 +15,12 @@ import { JobsModule } from './jobs/jobs.module';
 import { BullModule } from '@nestjs/bullmq';
 import { BullModuleConfig } from './configs/BullModuleConfig';
 import { ProcessorModule } from './processor/processor.module';
-import Redis from 'ioredis';
-import { RedisProvider } from './providers/redis.provider';
 import { WhatsappModule } from './whatsapp/whatsapp-sender.module';
 import { NotificationModule } from './notification/notification.module';
 import { TelegramService } from './telegram/telegram.service';
 import { TelegramModule } from './telegram/telegram.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { RedisModule } from './redis/redis.module';
 
 @Module({
   imports: [
@@ -42,12 +41,12 @@ import { AnalyticsModule } from './analytics/analytics.module';
     WhatsappModule,
     NotificationModule,
     TelegramModule,
-    AnalyticsModule
+    AnalyticsModule,
+    RedisModule
   ],
   controllers: [AppController],
   providers: [
     AppService,
-    RedisProvider,
     {
       provide: APP_INTERCEPTOR,
       useClass: ResponseInterceptor,

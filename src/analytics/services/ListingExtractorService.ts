@@ -119,6 +119,7 @@ If the post is not a property listing at all, return: {"confidence": 0}`;
     const clean = text.replace(/```json|```/g, '').trim();
 
     try {
+      // check parsed object has all required keys with correct data types
       const parsed = JSON.parse(clean) as ExtractedListing;
       return parsed;
     } catch {
