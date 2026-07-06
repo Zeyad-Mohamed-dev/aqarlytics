@@ -31,6 +31,9 @@ export class Post {
 
   platform: SocialMediaPlatform;
 
+  @Column({ type: 'enum', enum: ['pending', 'scraped', 'error'], default: 'pending' })
+  status: 'pending' | 'scraped' | 'error';
+
   @CreateDateColumn()
   createdAt: Date;
 

@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { LoginDto, RegisterDto, AuthResponseDto } from './dtos/auth.dto';
 import { UsersService } from '../users/users.service';
 import { UserRole } from '../users/user-role.enum';
+import Bycrt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
@@ -18,7 +19,7 @@ async login(loginDto: LoginDto): Promise<AuthResponseDto> {
     Logger.warn(`Login attempt with non-existent email: ${loginDto.email}`);
     throw new UnauthorizedException('User not found');
   }
-  const isPasswordValid = await this.jwtService.verify(user.password, { secret: process.env.JWT_SECRET });
+  const isPasswordValid = await Bycrt.compare(loginDto.password, user.password);
   if (!isPasswordValid) {
     Logger.warn(`Login attempt with invalid password for email: ${loginDto.email}`);
     throw new UnauthorizedException('Invalid password');
